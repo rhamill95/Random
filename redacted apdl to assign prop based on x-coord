@@ -1,0 +1,317 @@
+/batch
+/config,noeldb,1     ! force off writing results to database
+*get,_wallstrt,active,,time,wall
+! ANSYS input file written by Workbench version 2021 R1
+! File used for geometry attach: C:\Users\[REDACTED]\Documents (Local Uni PC)\Ansys Data\060927 linearelem\linearelement_files\dp0\SYS\DM\SYS.scdoc
+/title,linearelement--Static Structural (A5)
+! ****** Begin Custom Load Command Snippet ******
+/COM, ACT Extensions:
+/COM,     LSDYNA, 2021.1
+/COM,     5f463412-bd3e-484b-87e7-cbc0a665e474, wbex
+/COM,
+! ****** End   Custom Load Command Snippet ******
+*DIM,_wb_ProjectScratch_dir,string,248
+_wb_ProjectScratch_dir(1) = 'C:\Users\[REDACTED]\Documents (Local Uni PC)\Ansys Data\060927 linearelem\linearelement_files\dp0\SYS\MECH\'
+*DIM,_wb_SolverFiles_dir,string,248
+_wb_SolverFiles_dir(1) = 'C:\Users\[REDACTED]\Documents (Local Uni PC)\Ansys Data\060927 linearelem\linearelement_files\dp0\SYS\MECH\'
+*DIM,_wb_userfiles_dir,string,248
+_wb_userfiles_dir(1) = 'C:\Users\[REDACTED]\Documents (Local Uni PC)\Ansys Data\060927 linearelem\linearelement_files\user_files\'
+/com,--- Data in consistent NMM units. See Solving Units in the help system for more information.
+/units,MPA
+/nopr
+/wb,file,start              !  signify a WB generated input file
+/prep7
+! Turn off shape checking because checks already performed inside WB mesher.
+! See help system for more information.
+SHPP,OFF,,NOWARN
+/nolist
+etcon,set             ! allow ANSYS to choose best KEYOP's for 180x elements, resets any applicable keyopt to MAPDL defaults
+/com,*********** Nodes for the whole assembly ***********
+nblock,3,,33441
+(1i9,3e20.9e3)
+        1     5.000000000E+01     5.000000000E+01     0.000000000E+00
+        2     5.000000000E+01    -5.000000000E+01     0.000000000E+00
+..REDACTED...
+    30400     5.000000000E+01    -4.749650417E+01     0.000000000E+00
+    30401     5.000000000E+01    -4.849642870E+01     0.000000000E+00
+-1
+/wb,elem,start            !  set before creation of elements
+/com,*********** Elements for Body 1 "SYS\Surface" ***********
+et,1,183
+keyo,1,3,3
+eblock,19,solid,,10000
+(19i9)
+        1        1        1        1        0        0        0        0        8        0        1    10102        5    10103        1    10212    10213    10203    10202
+        1        1        1        1        0        0        0        0        8        0        2    10101      104        5    10102    10510    10211    10212    30303 
+...REDACTED...
+        1        1        1        1        0        0        0        0        8        0     9999     9805     9904     9903     9706    30008    30107    29810    29809
+        1        1        1        1        0        0        0        0        8        0    10000     9905        4     9904     9805    10209    10208    30008    30009
+-1
+!Material Id = {25DBFBB1-FB02-435B-940A-321F7F40BB8F}
+/wb,elem,end               !  done creating elements
+/com,*********** Send User Defined Coordinate System(s) ***********
+csys,0
+toffst,273.15,  ! Temperature offset from absolute zero
+/com,*********** Set Reference Temperature ***********
+tref,22.
+/wb,mat,start              !  starting to send materials
+/com,*********** Send Materials ***********
+
+TB,BISO,1,1,
+TBDATA,1,0.00032,0.000575
+MP,EX,1,190000,	! tonne s^-2 mm^-1
+MP,NUXY,1,0.28,
+
+/wb,mat,end                !  done sending materials
+/com,*********** Send Sheet Properties ***********
+r,1,1.
+
+! ****** Begin Command Snippet ******
+*dim,matids,,1
+*set,matids(1),1
+*set,matid,1
+*dim,typeids,,1
+*set,typeids(1),1
+!   Commands inserted into this file will be executed just after material definitions in /PREP7.
+!   The material number for this body is equal to the parameter "matid" if it's not a part of a Material Assignment.
+!   The element type numbers for this body can be referenced using the 1-D array parameter "typeids".
+
+!   Active UNIT system in Workbench when this object was created:  Metric (mm, kg, N, s, mV, mA)
+!   NOTE:  Any data that requires units (such as mass) is assumed to be in the consistent solver unit system.
+!                See Solving Units in the help system for more information.
+
+
+!Define constants
+*SET,sig_max,0.0005
+*SET,sig_min,0.0002
+*SET,H_max,0.000575
+*SET,H_min,0.0003
+*SET,L_1,100 !width of geometry in mm
+
+!Get number of elements
+!GET, Par, Entity, ENTNUM, Item1, IT1NUM 
+*GET,par_elemcount,ELEM,,COUNT   
+
+!Create arrays for each centroid positions
+!DIM, Par, Type, IMAX, JMAX
+*DIM,centarray,ARRAY,par_elemcount,2  
+
+!Assign element IDs and Centroid positions to centarray
+!VGET Retrieves values and stores them into an array parameter.
+*VGET,centarray(1,1),ELEM,,ELIST  !Element IDs
+*VGET,centarray(1,2),ELEM,,CENT,X 
+
+!Loop through each element
+!defines do loop !*DO, Par, IVAL, FVAL, INC
+*DO,i,1,par_elemcount,1   
+
+!test i value
+*SET,par_testi,i
+
+!Get x-coordinate of element centroid
+*SET,x_pos,centarray(i,2) 
+
+!calc material prop for element
+H=((H_max-H_min)/L_1)*x_pos + H_min
+sig=((sig_max-sig_min)/L_1)*x_pos + sig_min
+
+!Assign material prop to element
+!TB,lab,MAT,NTEMP,NPTS,TBLPT,EOSPT,FuncName
+!TB,bilinear isometric hardening, matid=1, no. of temp pts=1,
+!no. of pts=n/a for biso, eq of state=n/a, funcname=n/a
+TB,BISO,2,1,,,
+
+!TBDATA,STLOC,C1,C2
+!TBDATA, starting location, 1st const, 2nd const.
+TBDATA,2,sig,H
+MP,EX,2,190000,	! tonne s^-2 mm^-1
+MP,NUXY,2,0.28,
+
+MPCHG,2,i !only updating 1 ele at a time. inefficient
+
+*ENDDO  
+!end loop
+*set, matids, ,
+*set, typeids, ,
+! ****** End   Command Snippet ******
+!************************* Model Summary ********************
+!SYS\Surface,	Binlinear Iso Material,	matid,	1
+!************************* End Model Summary ********************
+! get the diagonal of the bounding box. Needed later for other things
+*get,_xmin,node,,mnloc,x
+*get,_ymin,node,,mnloc,y
+*get,_zmin,node,,mnloc,z
+*get,_xmax,node,,mxloc,x
+*get,_ymax,node,,mxloc,y
+*get,_zmax,node,,mxloc,z
+_ASMDIAG=(_xmax-_xmin)*(_xmax-_xmin)+(_ymax-_ymin)*(_ymax-_ymin)+(_zmax-_zmin)*(_zmax-_zmin)
+_ASMDIAG=SQRT(_ASMDIAG)
+/wb,contact,start          !  starting to send contact
+/wb,contact,end            !  done creating contacts
+/golist
+/wb,load,start             !  starting to send loads
+/com,*********** Fixed Supports ***********
+CMBLOCK,_FIXEDSU,NODE,        1
+(8i10)
+      9961
+cmsel,s,_FIXEDSU
+d,all,all
+nsel,all
+/com,********* Frictionless Supports X *********
+CMBLOCK,_FRICSUX,NODE,      200
+(8i10)
+         3         4      9905      9906      9907      9908      9909      9910
+      9911      9912      9913      9914      9915      9916      9917      9918
+      9919      9920      9921      9922      9923      9924      9925      9926
+      9927      9928      9929      9930      9931      9932      9933      9934
+      9935      9936      9937      9938      9939      9940      9941      9942
+      9943      9944      9945      9946      9947      9948      9949      9950
+      9951      9952      9953      9954      9955      9956      9957      9958
+      9959      9960      9962      9963      9964      9965      9966      9967
+      9968      9969      9970      9971      9972      9973      9974      9975
+      9976      9977      9978      9979      9980      9981      9982      9983
+      9984      9985      9986      9987      9988      9989      9990      9991
+      9992      9993      9994      9995      9996      9997      9998      9999
+     10000     10001     10002     10003     10206     10209     30108     30109
+     30110     30111     30112     30113     30114     30115     30116     30117
+     30118     30119     30120     30121     30122     30123     30124     30125
+     30126     30127     30128     30129     30130     30131     30132     30133
+     30134     30135     30136     30137     30138     30139     30140     30141
+     30142     30143     30144     30145     30146     30147     30148     30149
+     30150     30151     30152     30153     30154     30155     30156     30157
+     30158     30159     30160     30161     30162     30163     30164     30165
+     30166     30167     30168     30169     30170     30171     30172     30173
+     30174     30175     30176     30177     30178     30179     30180     30181
+     30182     30183     30184     30185     30186     30187     30188     30189
+     30190     30191     30192     30193     30194     30195     30196     30197
+     30198     30199     30200     30201     30202     30203     30204     30205
+
+cmsel,s,_FRICSUX
+d,all,ux,0
+nsel,all
+tblist
+/gst,on,on
+fini
+*get,_numnode,node,0,count
+*get,_numelem,elem,0,count
+*get, _MAXELEMNUM, elem, 0, NUM, MAX
+*get, _MAXNODENUM, node, 0, NUM, MAX
+*get, _MAXELEMTYPE, etyp, 0, NUM, MAX
+*get, _MAXREALCONST, real, 0, NUM, MAX
+/go
+/wb,load,end               !  done creating loads
+/com,--- Number of total nodes = %_numnode%
+/com,--- Number of contact elements = 0
+/com,--- Number of spring elements = 0
+/com,--- Number of bearing elements = 0
+/com,--- Number of solid elements = 10000
+/com,--- Number of condensed parts = 0
+/com,--- Number of total elements = %_numelem%
+*get,_wallbsol,active,,time,wall
+/com,****************************************************************************
+/com,*************************    SOLUTION       ********************************
+/com,****************************************************************************
+/solu
+antype,0                   ! static analysis
+_thickRatio=  0     ! Ratio of thick parts in the model
+eqsl,sparse,,,,,1
+cntr,print,1               ! print out contact info and also make no initial contact an error
+dmpoption,emat,no             ! Don't combine emat file for DANSYS
+dmpoption,esav,no             ! Don't combine esav file for DANSYS
+nldiag,cont,iter           ! print out contact info each equilibrium iteration
+rescontrol,define,last,last,,dele	   ! Program Controlled
+/com,****************************************************
+/com,******************* SOLVE FOR LS 1 OF 1 ****************
+/com,*** Set Displacements ***
+CMBLOCK,_CM41UX_XP,NODE,      201
+(8i10)
+         1         2     10103     10104     10105     10106     10107     10108
+     10109     10110     10111     10112     10113     10114     10115     10116
+     10117     10118     10119     10120     10121     10122     10123     10124
+     10125     10126     10127     10128     10129     10130     10131     10132
+     10133     10134     10135     10136     10137     10138     10139     10140
+     10141     10142     10143     10144     10145     10146     10147     10148
+     10149     10150     10151     10152     10153     10154     10155     10156
+     10157     10158     10159     10160     10161     10162     10163     10164
+     10165     10166     10167     10168     10169     10170     10171     10172
+     10173     10174     10175     10176     10177     10178     10179     10180
+     10181     10182     10183     10184     10185     10186     10187     10188
+     10189     10190     10191     10192     10193     10194     10195     10196
+     10197     10198     10199     10200     10201     10203     10205     30304
+     30305     30306     30307     30308     30309     30310     30311     30312
+     30313     30314     30315     30316     30317     30318     30319     30320
+     30321     30322     30323     30324     30325     30326     30327     30328
+     30329     30330     30331     30332     30333     30334     30335     30336
+     30337     30338     30339     30340     30341     30342     30343     30344
+     30345     30346     30347     30348     30349     30350     30351     30352
+     30353     30354     30355     30356     30357     30358     30359     30360
+     30361     30362     30363     30364     30365     30366     30367     30368
+     30369     30370     30371     30372     30373     30374     30375     30376
+     30377     30378     30379     30380     30381     30382     30383     30384
+     30385     30386     30387     30388     30389     30390     30391     30392
+     30393     30394     30395     30396     30397     30398     30399     30400
+     30401
+cmsel,s,_CM41UX_XP
+d,all,ux,3.e-002
+nsel,all
+
+/com,*** Component For All Non-Zero UX Displacements ***
+cmsel,s,_CM41ux_xp
+cm,_DISPNONZEROUX,NODE
+nsel,all
+
+/nopr
+/gopr
+/nolist
+autots,on                  ! Workbench Program Controlled automatic time stepping
+nsub,5,1000,1              ! due to presence of nonlinear materials
+time,1.
+outres,erase
+outres,all,none
+outres,nsol,all,
+outres,rsol,all
+outres,eangl,all
+outres,etmp,all
+outres,veng,all
+outres,strs,all,
+outres,epel,all,
+outres,eppl,all,
+outres,cont,all,
+! *********** WB SOLVE COMMAND ***********
+! check interactive state
+*get,ANSINTER_,active,,int
+*if,ANSINTER_,ne,0,then
+/eof
+*endif
+solve
+/com *************** Write FE CONNECTORS ********* 
+CEWRITE,file,ce,,INTE
+/com,****************************************************
+/com,*************** FINISHED SOLVE FOR LS 1 *************
+*get,_wallasol,active,,time,wall
+/nopr
+*get,_numnode,node,0,count
+*get,_numelem,elem,0,count
+*get, _MAXELEMNUM, elem, 0, NUM, MAX
+*get, _MAXNODENUM, node, 0, NUM, MAX,,,INTERNAL
+*get, _MAXELEMTYPE, etyp, 0, NUM, MAX
+*get, _MAXREALCONST, real, 0, NUM, MAX
+/gopr
+/post1
+xmlo,ENCODING,ISO-8859-1
+xmlo,parm
+/xml,parm,xml
+fini
+/gopr
+*get,_walldone,active,,time,wall
+_preptime=(_wallbsol-_wallstrt)*3600
+_solvtime=(_wallasol-_wallbsol)*3600
+_posttime=(_walldone-_wallasol)*3600
+_totaltim=(_walldone-_wallstrt)*3600
+*get,_dlbratio,active,0,solu,dlbr
+*get,_combtime,active,0,solu,comb
+/com,--- Total number of nodes = %_numnode%
+/com,--- Total number of elements = %_numelem%
+/com,--- Element load balance ratio = %_dlbratio%
+/com,--- Time to combine distributed files = %_combtime%
+/wb,file,end               ! done with WB generated input
