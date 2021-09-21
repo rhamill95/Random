@@ -1,0 +1,132 @@
+!   Commands inserted into this file will be executed just after material definitions in /PREP7.
+!   The material number for this body is equal to the parameter "matid" if it's not a part of a Material Assignment.
+!   The element type numbers for this body can be referenced using the 1-D array parameter "typeids".
+
+!   Active UNIT system in Workbench when this object was created:  Metric (mm, kg, N, s, mV, mA)
+!   NOTE:  Any data that requires units (such as mass) is assumed to be in the consistent solver unit system.
+!                See Solving Units in the help system for more information.
+
+
+!Define constants
+*SET,sig_max,250
+*SET,sig_min,200
+*SET,H_max,300
+*SET,H_min,350
+*SET,L_1,100 !width of geometry in mm
+
+! select all elements you want to assign x-based materials to
+esel,all
+
+! Save element selection to a component
+!CM, Cname, Entity  !Groups geometry items into a component.
+cm,remainingElem,elem   
+
+! Set initial material ID
+matID = 1
+
+! arbitray large number of iterations (1000000) based on how many groups of elements you think you'll have. 
+!We'll exit the loop early if we end up finishing the assignments though.
+!*DO, Par, IVAL, FVAL, INC !defines do loop 
+*do,ee,1,1000000 
+
+! Get the element ID of the next lowest element that is still selected 
+! "elnext" is an alternative way to do *GET, nextElem, ELEM,0, nxth
+nextElem=ELNEXT(0) 
+
+! Get element x-coordinate
+*get,elemXposition,ELEM,nextElem,cent,x
+
+! Select all elements at this centroid location
+!ESEL, Type, Item, Comp, VMIN, VMAX, VINC, KABS !Selects a subset of elements.
+!r-Reselect a set from the current set.
+esel,r,cent,x,elemXposition
+
+! Assign component name to these elements
+cm,elementXgroup,elem
+
+!Define material prop for this x position
+*SET,x_pos,elemXposition + 50 !+50 due to coord sys
+
+!calc material prop for element
+H=((H_max-H_min)/L_1)*x_pos + H_min
+sig=((sig_max-sig_min)/L_1)*x_pos + sig_min
+
+!Assign material prop to element
+!TB,lab,MAT,NTEMP,NPTS,TBLPT,EOSPT,FuncName
+!TB,bilinear isometric hardening, matid=1, no. of temp pts=1,
+!no. of pts=n/a for biso, eq of state=n/a, funcname=n/a
+TB,BISO,matID,1,,,
+
+!TBDATA,STLOC,C1,C2
+!TBDATA, starting location, 1st const, 2nd const.
+TBDATA,1,sig,H
+MP,EX,matID,190000,	! tonne s^-2 mm^-1
+MP,NUXY,matID,0.28, !MP, Lab, MAT, C0, C1
+
+! Change material properties for all these elements
+! You'll have to combine with your code to set up the material properties though.
+MPCHG,matID,all
+
+!Get number of elements in a col
+*GET,par_elemcountcol,ELEM,,COUNT   
+
+! Select the component "remainingElem", unselect the group of elements we just assigned properties to "elementXgroup" and redefine "remainingElem" so we never select those elements again in the do-loop
+cmsel,s,remainingElem !S - Select a new set (default).
+cmsel,u,elementXgroup !U - Unselect a set from the current set.
+cm,remainingElem,elem
+
+!Get number of elements
+*GET,par_elemcount,ELEM,,COUNT   
+
+! If there are no element left, exit the do-loop
+!*IF, VAL1, Oper1, VAL2, Base1, VAL3, Oper2, VAL4, Base2 !Conditionally causes commands to be read.
+!eq: equal  ! exit: exit current do-loop
+*if,par_elemcount,eq,par_elemcountcol,exit
+
+! Increment matID by one so we don't overwrite it for the next iteration of the do-loop
+matID=matID+1
+
+*enddo
+
+
+
+matID=matID+1
+! Get the element ID of the next lowest element that is still selected 
+! "elnext" is an alternative way to do *GET, nextElem, ELEM,0, nxth
+nextElem=ELNEXT(0) 
+
+! Get element x-coordinate
+*get,elemXposition,ELEM,nextElem,cent,x
+
+! Select all elements at this centroid location
+!ESEL, Type, Item, Comp, VMIN, VMAX, VINC, KABS !Selects a subset of elements.
+!r-Reselect a set from the current set.
+esel,r,cent,x,elemXposition
+
+! Assign component name to these elements
+cm,elementXgroup,elem
+
+!Define material prop for this x position
+*SET,x_pos,elemXposition + 50 !+50 due to coord sys
+
+!calc material prop for element
+H=((H_max-H_min)/L_1)*x_pos + H_min
+sig=((sig_max-sig_min)/L_1)*x_pos + sig_min
+
+!Assign material prop to element
+!TB,lab,MAT,NTEMP,NPTS,TBLPT,EOSPT,FuncName
+!TB,bilinear isometric hardening, matid=1, no. of temp pts=1,
+!no. of pts=n/a for biso, eq of state=n/a, funcname=n/a
+TB,BISO,matID,1,,,
+
+!TBDATA,STLOC,C1,C2
+!TBDATA, starting location, 1st const, 2nd const.
+TBDATA,1,sig,H
+MP,EX,matID,190000,	! tonne s^-2 mm^-1
+MP,NUXY,matID,0.28, !MP, Lab, MAT, C0, C1
+
+! Change material properties for all these elements
+! You'll have to combine with your code to set up the material properties though.
+MPCHG,matID,all
+
+ALLSEL,ALL,ALL
